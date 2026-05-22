@@ -19,7 +19,6 @@ else:
     client = OpenAI(api_key=api_key) 
 
 # 3. Create request message
-
 system_content = "You are a helpful assistant that creates study plans for Language learners." \
                     "If requested skills are non related to language learning, return the message:" \
                     "'Apologies, we are no longer supporting other skills.'"
@@ -30,7 +29,8 @@ response = client.chat.completions.create(
     temperature=args.temperature,
     
     messages=[
-        # The system role is used to set the behavior of the assistant, including instructions, guardrailes (to impose restrictions), or any information that improve the assistant's response quality and relevance.
+        # The system role is used to set the behavior of the assistant, including instructions, guardrailes (to impose restrictions),
+        # or any information that improve the assistant's response quality and relevance.
         {"role": "system", "content": system_content},
         # Location to define a user-assistant pair to serve as an ideal example/response.
         {"role": "user", "content": "I want to learn to speak Persian. Create a study plan for me."},
