@@ -8,9 +8,13 @@ if not api_key:
 else:
     client = OpenAI(api_key=api_key)
 
-messages = [{"role": "system", "content": "You are a helpful math tutor that speaks concisely."}]
+messages = [{"role": "system", "content": "You are a helpful math tutor that speaks concisely.\
+                                            Your answers should be freindly and objective.\
+                                            If requested skill by user is non related to math learning, return the following message:\
+                                            'Apologies, we are no longer supporting other skills.'"}]
 
-print("Chatbot is running. Type 'exit' to quit.\n")
+print("\nChatbot is running. Type 'exit' to quit.\n")
+print("Hi, how can I help you today?\n")
 
 while True:
     # Capture user input from PowerShell terminal
@@ -29,7 +33,7 @@ while True:
         model="gpt-4o-mini",
         max_completion_tokens=100,
         messages=messages,
-        stream=True # Enable streaming responses, i.e., the response appears token by token, like a real conversation
+        stream=False # Enables streaming responses, i.e., the response appears token by token, like a real conversation
     )
 
     # Extract assistant response
