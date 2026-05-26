@@ -20,7 +20,7 @@ else:
 
 # 3. Create request message
 system_content = "You are a helpful assistant that creates study plans for Language learners." \
-                    "If requested skills are non related to language learning, return the message:" \
+                    "If requested skills are not related to language learning, return the message:" \
                     "'Apologies, we are no longer supporting other skills.'"
 
 response = client.chat.completions.create(
