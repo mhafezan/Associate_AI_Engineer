@@ -176,4 +176,4 @@ This project is a strong foundation for extending into more production-oriented 
 ## Author
 
 **Mohammad Hafezan**  
-AI/ML Systems | Embedded AI | Computer Architecture | AI Security
+AI/ML Systems | Embedded AI | Computer Architecture
