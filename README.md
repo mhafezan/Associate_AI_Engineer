@@ -1,179 +1,702 @@
-# Working with the OpenAI API
+# Associate AI Engineer Career Track - DataCamp Projects
 
-This repository contains three Python applications that demonstrate practical integration patterns with the OpenAI API, ranging from a command-line prompt-driven tool to interactive chatbot interfaces in both terminal and web environments.
+A comprehensive collection of hands-on projects demonstrating practical applications of modern AI APIs and transformer models. This repository covers two major areas: **OpenAI API integration** and **HuggingFace Transformers**, providing educational resources for developers learning to build production-ready AI applications.
 
-## Repository Overview
+## 📋 Table of Contents
 
-The codebase is organized into three standalone scripts, each designed to illustrate a different application pattern:
+- [Project Overview](#project-overview)
+- [Repository Structure](#repository-structure)
+- [Getting Started](#getting-started)
+- [Module 1: OpenAI API](#module-1-openai-api)
+- [Module 2: HuggingFace Transformers](#module-2-huggingface-transformers)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Environment Setup](#environment-setup)
+- [Usage Examples](#usage-examples)
+- [Learning Objectives](#learning-objectives)
+- [Best Practices](#best-practices)
+- [Future Enhancements](#future-enhancements)
+- [License](#license)
 
-- **`1_Fundamentals.py`** — a command-line OpenAI client for controlled prompt execution and optional cost estimation.
-- **`2_AI_ChatBot_Terminal.py`** — a terminal-based conversational chatbot that maintains message history across turns.
-- **`3_AI_ChatBot_Flask.py`** — a Flask-powered web chatbot with session-based conversation state and browser UI support.
+## 🎯 Project Overview
 
-Together, these files provide a useful progression from API fundamentals to interactive application development.
+This project is designed for aspiring AI Engineers participating in DataCamp's Associate AI Engineer Career Track. It provides practical, runnable implementations covering:
+
+- **API Integration Patterns**: Learn how to authenticate and interact with state-of-the-art language models
+- **Application Architecture**: From CLI tools to full-stack web applications
+- **NLP Task Diversity**: Text generation, classification, zero-shot learning, and question-answering
+- **Production Patterns**: Secure API key management, session handling, error management
+- **Modern ML Stack**: OpenAI's latest models and HuggingFace's pre-trained transformers
+
+## 📁 Repository Structure
+
+```
+Associate_AI_Engineer_Career_Track/
+├── 1_OpenAI_API/
+│   ├── 1_Fundamentals.py
+│   ├── 2_AI_ChatBot_Terminal.py
+│   ├── 3_AI_ChatBot_Flask.py
+│   └── templates/
+│       └── index.html
+├── 2_HuggingFace_API/
+│   ├── 1_Task_Text_Generation_Model_GPT2.py
+│   ├── 2_Task_Text_Classification_Model_Bart.py
+│   ├── 3_Task_Text_Classification_AutoModel_AutoTokenizer.py
+│   └── 4_Task_DocumentQA_Model_Bert.py
+├── README.md
+└── LICENSE
+```
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Python 3.8 or higher
+- pip (Python package manager)
+- An OpenAI API key (for OpenAI module)
+- Basic understanding of Python and command-line interfaces
+
+### Quick Start
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/mhafezan/Associate_AI_Engineer_Career_Track.git
+   cd Associate_AI_Engineer_Career_Track
+   ```
+
+2. **Install dependencies** (see [Installation](#installation) section)
+
+3. **Configure environment** (see [Environment Setup](#environment-setup) section)
+
+4. **Run your first example**
+   ```bash
+   python 2_HuggingFace_API/1_Task_Text_Generation_Model_GPT2.py
+   ```
 
 ---
 
-## File-by-File Description
+## 🔌 Module 1: OpenAI API
 
-### 1. `1_Fundamentals.py`
+This module demonstrates practical patterns for integrating with OpenAI's Chat Completions API, progressing from simple CLI tools to full-featured web applications.
 
-This script demonstrates the fundamentals of interacting with the OpenAI Chat Completions API from a Python command-line interface.
+### 1.1 Fundamentals (`1_Fundamentals.py`)
 
-#### Core capabilities
-- Parses runtime arguments using `argparse`
-- Accepts a model name, prompt content, token limit, and temperature
-- Applies a system prompt to constrain the assistant’s behavior
-- Uses a few-shot example to guide output style
-- Optionally estimates request cost using token counts
+**Purpose**: Master the basics of OpenAI API interactions with prompt engineering and cost estimation.
 
-#### Main use case
-This file is appropriate for:
-- learning basic request structure
-- testing prompt engineering
-- experimenting with response controls
-- building a simple reusable CLI tool
+**Key Features**:
+- Command-line argument parsing for flexible configuration
+- System prompts for behavior control and guardrails
+- Few-shot prompting for output shaping
+- Token-based cost estimation
+- Temperature and completion token controls
 
-#### Example command
+**Use Cases**:
+- Learning API request structure
+- Prompt engineering experimentation
+- Cost analysis for API calls
+- Language learning study plan generation
 
+**Example Usage**:
 ```bash
-python 1_Fundamentals.py --model gpt-4o-mini --user_content "I want to learn to speak Dutch. Create a study plan for me." --max_completion_tokens 400 --temperature 0.7 --cost
+python 1_OpenAI_API/1_Fundamentals.py \
+  --model gpt-4o-mini \
+  --user_content "I want to learn to speak Dutch. Create a study plan for me." \
+  --max_completion_tokens 400 \
+  --temperature 0.7 \
+  --cost
 ```
 
-#### Notes
-- The script expects the OpenAI API key in an environment variable.
-- Cost estimation is approximate and depends on the selected model pricing.
+**Key Concepts**:
+- System role: Controls assistant behavior
+- Few-shot examples: Demonstrates desired output format
+- Temperature: Balances creativity (higher) vs. consistency (lower)
+- Token counting: Tracks API usage and costs
 
 ---
 
-### 2. `2_AI_ChatBot_Terminal.py`
+### 1.2 Terminal Chatbot (`2_AI_ChatBot_Terminal.py`)
 
-This script implements a conversational chatbot that runs in the terminal.
+**Purpose**: Build a conversational AI that maintains context across multiple turns.
 
-#### Core capabilities
-- Loads the OpenAI API key securely from the environment
-- Accepts user input interactively from the terminal
-- Preserves conversation context in a `messages` list
-- Sends the full chat history to the model on each turn
-- Supports quitting with `exit` or `quit`
+**Key Features**:
+- Multi-turn conversation with message history
+- Real-time user interaction from terminal
+- Stateful conversation management
+- Context preservation across turns
+- Interactive exit mechanism
 
-#### Main use case
-This file is appropriate for:
-- learning multi-turn conversation handling
-- building a lightweight local chatbot
-- testing conversational prompts in a development environment
+**Use Cases**:
+- Building lightweight chatbots for development
+- Learning conversation state management
+- Local experimentation before web deployment
+- Testing conversational prompts and behaviors
 
-#### Example run
-
+**Example Usage**:
 ```bash
-python 2_AI_ChatBot_Terminal.py
+python 1_OpenAI_API/2_AI_ChatBot_Terminal.py
 ```
 
-#### Interaction example
+**Interaction Example**:
+```
+Chatbot is running. Type 'exit' to quit.
 
-```text
-User: Explain what pi is.
-Assistant: Pi is the ratio of a circle's circumference to its diameter.
+Hi, how can I help you today?
 
-User: Summarize that in one sentence.
-Assistant: Pi is the constant ratio between a circle’s circumference and diameter.
+User: What is calculus?
+Assistant: Calculus is a branch of mathematics...
+
+User: Can you give me a simple example?
+Assistant: Sure! Let me break it down...
 ```
 
-#### Notes
-- This script is designed as a minimal chatbot prototype.
-- It is ideal for local experimentation before adding logging, streaming, or UI layers.
+**Key Concepts**:
+- Message list accumulation: Full conversation history sent with each request
+- Role-based messaging: System, user, and assistant roles
+- Context management: Maintaining conversational coherence
+- Stateful interactions: Preserving context between API calls
 
 ---
 
-### 3. `3_AI_ChatBot_Flask.py`
+### 1.3 Flask Web Chatbot (`3_AI_ChatBot_Flask.py`)
 
-This script extends the chatbot concept into a web application using Flask.
+**Purpose**: Deploy a chatbot as a web application with browser-based UI and session management.
 
-#### Core capabilities
-- Creates a browser-accessible chatbot using Flask
-- Stores chat history in the user session
-- Uses an OpenAI model to answer user prompts
-- Renders messages through an HTML template
-- Supports clearing conversation history with a dedicated route
+**Key Features**:
+- Flask-based web framework integration
+- Session-based conversation storage
+- RESTful API endpoints
+- HTML template rendering
+- Chat history management and clearing
 
-#### Main use case
-This file is appropriate for:
-- learning how to integrate the OpenAI API into web applications
-- building a simple chat interface for demonstrations
-- prototyping AI-enabled backend services
+**Use Cases**:
+- Building production-ready chat interfaces
+- Learning web framework integration with AI APIs
+- Creating shareable interfaces for AI applications
+- Demonstrating multi-user session handling
 
-#### Example run
-
+**Example Usage**:
 ```bash
-python 3_AI_ChatBot_Flask.py
+python 1_OpenAI_API/3_AI_ChatBot_Flask.py
 ```
 
-Then open:
+Then visit `http://127.0.0.1:5000` in your browser.
 
-```text
-http://127.0.0.1:5000
-```
+**Key Concepts**:
+- Flask routing: GET/POST request handling
+- Session management: Per-user conversation state
+- Template rendering: Dynamic HTML with Jinja2
+- State persistence: Conversation history across page reloads
 
-#### Notes
-- The Flask script requires a corresponding HTML template such as `templates/index.html`.
-- For production use, the Flask `secret_key` should be moved to a secure environment variable.
+**HTML Interface** (`templates/index.html`):
+- Responsive chat display with user/assistant differentiation
+- Real-time message rendering
+- Clean, modern UI with styled messages
+- Clear chat functionality
 
 ---
 
-## Requirements
+## 🤗 Module 2: HuggingFace Transformers
 
-Install the required packages before running the scripts:
+This module demonstrates diverse NLP tasks using pre-trained transformer models from HuggingFace's extensive model hub.
+
+### 2.1 Text Generation with GPT-2 (`1_Task_Text_Generation_Model_GPT2.py`)
+
+**Purpose**: Generate creative text using a pre-trained language model.
+
+**Key Features**:
+- Pipeline abstraction for easy model usage
+- Configurable token generation limits
+- Multiple sequence generation
+- Automatic tokenization
+
+**Use Cases**:
+- Text generation and creative writing
+- Understanding model output formats
+- Learning pipeline patterns
+
+**Example Usage**:
+```bash
+python 2_HuggingFace_API/1_Task_Text_Generation_Model_GPT2.py
+```
+
+**Key Concepts**:
+- Pipeline abstraction: Simplified model interfaces
+- Token generation: Controlling output length
+- Multiple outputs: Generating diverse completions
+- Padding tokens: Handling sequence termination
+
+---
+
+### 2.2 Zero-Shot Classification with BART (`2_Task_Text_Classification_Model_Bart.py`)
+
+**Purpose**: Classify text into arbitrary categories without fine-tuning.
+
+**Key Features**:
+- Zero-shot learning capability
+- Flexible category definition
+- Confidence score output
+- User-defined classification schemes
+
+**Use Cases**:
+- Dynamic text categorization
+- No-training-required classification
+- Learning zero-shot paradigm
+
+**Example Usage**:
+```bash
+python 2_HuggingFace_API/2_Task_Text_Classification_Model_Bart.py
+```
+
+Input example:
+```
+Enter a text to classify: "AI-powered robots assist in complex brain surgeries with precision and efficiency"
+Output:
+science: 0.9847
+politics: 0.0089
+sports: 0.0064
+```
+
+**Key Concepts**:
+- Zero-shot learning: No model fine-tuning required
+- Category flexibility: Arbitrary classification schemes
+- Confidence scores: Model certainty measures
+- Entailment-based classification
+
+---
+
+### 2.3 Sentiment Analysis with DistilBERT (`3_Task_Text_Classification_AutoModel_AutoTokenizer.py`)
+
+**Purpose**: Perform sentiment analysis using fine-tuned BERT models.
+
+**Key Features**:
+- Auto-loading of tokenizer and model
+- Sentiment classification (positive/negative)
+- Confidence scoring
+- Fine-tuned model utilization
+
+**Use Cases**:
+- Sentiment analysis for content
+- Learning AutoModel patterns
+- Production-ready classification
+
+**Example Usage**:
+```bash
+python 2_HuggingFace_API/3_Task_Text_Classification_AutoModel_AutoTokenizer.py
+```
+
+Input example:
+```
+Enter a text to classify: "I love this movie! It's fantastic and full of surprises."
+Output:
+Label: POSITIVE, Confidence Score: 0.9989
+```
+
+**Key Concepts**:
+- AutoModel/AutoTokenizer: Automatic architecture loading
+- Fine-tuned models: Pre-trained on specific tasks
+- Tokenization: Converting text to model inputs
+- Pipeline pattern: Simplifying complex workflows
+
+---
+
+### 2.4 Document Question-Answering with BERT (`4_Task_DocumentQA_Model_Bert.py`)
+
+**Purpose**: Extract answers from documents using question-answering models.
+
+**Key Features**:
+- PDF document processing
+- Context-based question answering
+- Extractive QA (finds spans in text)
+- No fine-tuning required
+
+**Use Cases**:
+- Automated document analysis
+- Knowledge extraction from PDFs
+- Building FAQ systems
+- Document-based Q&A interfaces
+
+**Example Usage**:
+```bash
+python 2_HuggingFace_API/4_Task_DocumentQA_Model_Bert.py
+```
+
+**Workflow**:
+1. Loads PDF file (`employee_policy.pdf`)
+2. Extracts text from all pages
+3. User provides a question
+4. Model finds and returns relevant answer span
+
+**Example**:
+```
+Enter your question: "What is the vacation policy?"
+Answer: "Employees receive 20 days of paid vacation annually."
+```
+
+**Key Concepts**:
+- Document processing: PDF text extraction
+- Extractive QA: Span-based answer finding
+- Context awareness: Document-aware reasoning
+- Information retrieval: Finding relevant text sections
+
+---
+
+## 📦 Requirements
+
+### Core Dependencies
+
+| Package | Version | Purpose |
+|---------|---------|---------|
+| `openai` | Latest | OpenAI API SDK |
+| `flask` | Latest | Web framework for chatbot UI |
+| `transformers` | Latest | HuggingFace transformer models |
+| `torch` | Latest | Deep learning framework |
+| `pypdf` | Latest | PDF processing |
+
+### Optional Dependencies
+
+- `python-dotenv`: For .env file support
+- `gunicorn`: For production Flask deployment
+
+---
+
+## 🔧 Installation
+
+### 1. Clone the Repository
 
 ```bash
+git clone https://github.com/mhafezan/Associate_AI_Engineer_Career_Track.git
+cd Associate_AI_Engineer_Career_Track
+```
+
+### 2. Create Virtual Environment (Recommended)
+
+```bash
+# Windows
+python -m venv venv
+venv\Scripts\activate
+
+# macOS/Linux
+python3 -m venv venv
+source venv/bin/activate
+```
+
+### 3. Install Dependencies
+
+```bash
+# Install all requirements
+pip install openai flask transformers torch pypdf
+
+# Or install individual modules as needed
+# For OpenAI module
 pip install openai flask
+
+# For HuggingFace module
+pip install transformers torch pypdf
 ```
 
-> `flask` is only required for the web-based chatbot. The first two scripts only require the OpenAI Python SDK.
+### 4. Verify Installation
+
+```bash
+python -c "import openai; import flask; import transformers; print('All dependencies installed!')"
+```
 
 ---
 
-## Environment Setup
+## 🔐 Environment Setup
 
-Set your OpenAI API key as an environment variable.
+### OpenAI API Key Configuration
 
-### Windows PowerShell
+The OpenAI examples require an API key. Set it as an environment variable before running any OpenAI scripts.
+
+#### Windows (PowerShell)
 
 ```powershell
-setx OPENAI_API_KEY "your-api-key-here"
+$env:OPENAI_API_KEY = "sk-your-api-key-here"
 ```
 
-After setting the variable, restart your terminal or VS Code session.
+To make it permanent:
+```powershell
+setx OPENAI_API_KEY "sk-your-api-key-here"
+```
+
+#### Windows (Command Prompt)
+
+```cmd
+setx OPENAI_API_KEY "sk-your-api-key-here"
+```
+
+#### macOS/Linux
+
+```bash
+export OPENAI_API_KEY="sk-your-api-key-here"
+```
+
+To make it permanent, add to `~/.bash_profile` or `~/.zshrc`:
+```bash
+echo 'export OPENAI_API_KEY="sk-your-api-key-here"' >> ~/.bash_profile
+source ~/.bash_profile
+```
+
+#### Verification
+
+```bash
+python -c "import os; print('API Key set:', bool(os.getenv('OPENAI_API_KEY')))"
+```
 
 ---
 
-## Project Highlights
+## 💻 Usage Examples
 
-This repository demonstrates several important concepts relevant to practical AI application development:
+### OpenAI Module Examples
 
-- **Prompt engineering** using system and user roles
-- **Few-shot prompting** for response shaping
-- **Conversational memory** using message history
-- **Session-based state management** in Flask
-- **CLI and web-based AI application patterns**
-- **Basic token-cost estimation**
+#### Example 1: Generate a Language Learning Plan
+
+```bash
+python 1_OpenAI_API/1_Fundamentals.py \
+  --model gpt-4o-mini \
+  --user_content "I want to learn to speak French. Create a 30-day study plan." \
+  --max_completion_tokens 500 \
+  --temperature 0.7 \
+  --cost
+```
+
+#### Example 2: Interactive Math Tutor
+
+```bash
+python 1_OpenAI_API/2_AI_ChatBot_Terminal.py
+```
+
+Then interact:
+```
+User: What is the derivative of x^2?
+Assistant: The derivative of x^2 is 2x. This comes from...
+
+User: Can you explain the power rule?
+Assistant: The power rule states that for a function f(x) = x^n...
+```
+
+#### Example 3: Web-Based Chatbot
+
+```bash
+python 1_OpenAI_API/3_AI_ChatBot_Flask.py
+```
+
+Open browser to `http://127.0.0.1:5000`
+
+### HuggingFace Module Examples
+
+#### Example 1: Generate Text
+
+```bash
+python 2_HuggingFace_API/1_Task_Text_Generation_Model_GPT2.py
+```
+
+Output:
+```
+Hi, how are you doing today? I'm doing great, thanks for asking!
+
+Hi, how are you doing today? Not much, just relaxing at home.
+```
+
+#### Example 2: Zero-Shot Classification
+
+```bash
+python 2_HuggingFace_API/2_Task_Text_Classification_Model_Bart.py
+```
+
+Input: `"NASA launches new Mars rover for deep space exploration"`
+
+Output:
+```
+science: 0.9876
+politics: 0.0089
+sports: 0.0035
+```
+
+#### Example 3: Sentiment Analysis
+
+```bash
+python 2_HuggingFace_API/3_Task_Text_Classification_AutoModel_AutoTokenizer.py
+```
+
+Input: `"This product is amazing! Highly recommend!"`
+
+Output:
+```
+Label: POSITIVE, Confidence Score: 0.9995
+```
+
+#### Example 4: Document Question-Answering
+
+```bash
+python 2_HuggingFace_API/4_Task_DocumentQA_Model_Bert.py
+```
+
+Workflow:
+1. Place `employee_policy.pdf` in the script directory
+2. Run the script
+3. Input: `"How many vacation days do employees get?"`
+4. Output: `"20 days of paid vacation per year"`
 
 ---
 
-## Suggested Next Improvements
+## 🎓 Learning Objectives
 
-This project is a strong foundation for extending into more production-oriented AI applications. The following enhancements would be natural next steps:
+By completing this project, you will understand:
 
-- streaming responses for real-time output
-- dynamic pricing per model
-- structured logging and analytics
-- error handling and retry logic
-- model selection from the interface
-- persistent chat storage
-- deployment using Flask with a production WSGI server
+### API Integration
+- ✅ Authenticating with modern AI APIs
+- ✅ Crafting effective API requests
+- ✅ Error handling and validation
+- ✅ Cost estimation and monitoring
+
+### Prompt Engineering
+- ✅ System prompts for behavior control
+- ✅ Few-shot prompting for output guidance
+- ✅ Temperature and token controls
+- ✅ Guardrails and safety considerations
+
+### Application Architecture
+- ✅ CLI tools for simple interactions
+- ✅ Terminal-based interactive applications
+- ✅ Web frameworks (Flask) integration
+- ✅ Session management and state persistence
+
+### NLP Tasks
+- ✅ Text generation and completion
+- ✅ Text classification (supervised and zero-shot)
+- ✅ Sentiment analysis
+- ✅ Question-answering systems
+- ✅ Document processing
+
+### ML Engineering
+- ✅ Model selection and loading
+- ✅ Tokenization and preprocessing
+- ✅ Pipeline abstraction patterns
+- ✅ Confidence scoring and uncertainty
 
 ---
 
-## Author
+## 🏆 Best Practices
+
+### Security
+- ✅ Never hardcode API keys
+- ✅ Always use environment variables
+- ✅ Implement API rate limiting in production
+- ✅ Validate and sanitize user inputs
+- ✅ Use HTTPS for all API communication
+
+### Code Quality
+- ✅ Add error handling for API failures
+- ✅ Implement logging for debugging
+- ✅ Use type hints for clarity
+- ✅ Follow PEP 8 style guidelines
+- ✅ Add docstrings to functions
+
+### Performance
+- ✅ Cache model loading to avoid redundant downloads
+- ✅ Batch API requests when possible
+- ✅ Implement connection pooling
+- ✅ Monitor token usage and costs
+- ✅ Use streaming for long-form content
+
+### Development
+- ✅ Start with simpler models before complex ones
+- ✅ Test with small datasets first
+- ✅ Use version control for tracking changes
+- ✅ Document API changes and updates
+- ✅ Keep dependencies up to date
+
+---
+
+## 🚀 Future Enhancements
+
+Suggested improvements to extend these projects:
+
+### OpenAI Module
+- [ ] Add streaming response support for real-time output
+- [ ] Implement conversation persistence to database
+- [ ] Add multi-turn conversation management
+- [ ] Create conversation history export (PDF/JSON)
+- [ ] Implement rate limiting and usage analytics
+- [ ] Add user authentication and multi-user support
+- [ ] Deploy with production WSGI server (Gunicorn)
+- [ ] Add conversation analytics and insights
+
+### HuggingFace Module
+- [ ] Add model fine-tuning on custom datasets
+- [ ] Implement batch processing for multiple documents
+- [ ] Create evaluation metrics and benchmarks
+- [ ] Add model caching and optimization
+- [ ] Build API endpoints for model serving
+- [ ] Implement A/B testing for model comparison
+- [ ] Add monitoring and performance tracking
+- [ ] Create dataset creation and annotation tools
+
+### Cross-Module
+- [ ] Create unified CLI with subcommands
+- [ ] Build dashboard for model monitoring
+- [ ] Add A/B testing framework
+- [ ] Implement cost comparison tools
+- [ ] Create automated testing suite
+- [ ] Build CI/CD pipeline
+- [ ] Add Docker containerization
+- [ ] Create deployment templates
+
+---
+
+## 📚 Additional Resources
+
+### OpenAI Documentation
+- [OpenAI API Reference](https://platform.openai.com/docs/api-reference)
+- [Chat Completions Guide](https://platform.openai.com/docs/guides/gpt)
+- [Prompt Engineering Best Practices](https://platform.openai.com/docs/guides/prompt-engineering)
+
+### HuggingFace Documentation
+- [HuggingFace Transformers](https://huggingface.co/docs/transformers/)
+- [Model Hub](https://huggingface.co/models)
+- [Pipeline Documentation](https://huggingface.co/docs/transformers/main_classes/pipelines)
+
+### Learning Resources
+- [DataCamp Associate AI Engineer Track](https://www.datacamp.com/)
+- [OpenAI Cookbook](https://github.com/openai/openai-cookbook)
+- [HuggingFace Course](https://huggingface.co/course)
+
+---
+
+## 👤 Author
 
 **Mohammad Hafezan**  
 AI/ML Systems | Embedded AI | Computer Architecture | AI Security
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to:
+- Report bugs and issues
+- Suggest improvements and enhancements
+- Submit pull requests with new features
+- Share your own project implementations
+
+---
+
+## 📞 Support
+
+For questions, issues, or feedback:
+- Open an issue on GitHub
+- Check existing documentation
+- Review code comments and docstrings
+- Consult official API documentation
+
+---
+
+**Last Updated**: May 2026  
+**Python Version**: 3.8+  
+**Status**: Active Development
