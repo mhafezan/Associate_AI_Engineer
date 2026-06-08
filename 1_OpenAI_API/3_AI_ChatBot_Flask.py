@@ -1,5 +1,5 @@
 """Flask web application for an OpenAI-powered chatbot."""
-from flask import Flask, Response, jsonify, render_template, request, session, redirect, url_for
+from flask import Flask, Response, jsonify, render_template, request, session, redirect, url_for, stream_with_context
 from openai import OpenAI
 import json
 import os
@@ -46,12 +46,13 @@ def chat():
     if not user_input:
         return jsonify({"error": "Message cannot be empty."}), 400
 
-    messages = session["messages"]
+    messages = list(session["messages"])
     messages.append({"role": "user", "content": user_input})
     session["messages"] = messages
+    session.modified = True
 
+    @stream_with_context
     def generate():
-        assistant_reply = ""
         try:
             stream = client.chat.completions.create(
                 model="gpt-4o-mini",
@@ -63,17 +64,17 @@ def chat():
             for chunk in stream:
                 token = chunk.choices[0].delta.content or ""
                 if token:
-                    assistant_reply += token
                     yield f"data: {json.dumps({'token': token})}\n\n"
 
-            messages.append({"role": "assistant", "content": assistant_reply})
-            session["messages"] = messages
             yield "data: [DONE]\n\n"
 
         except Exception as exc:
             yield f"data: {json.dumps({'error': str(exc)})}\n\n"
 
-    return Response(generate(), mimetype="text/event-stream")
+    response = Response(generate(), mimetype="text/event-stream")
+    response.headers["Cache-Control"] = "no-cache"
+    response.headers["X-Accel-Buffering"] = "no"
+    return response
 
 
 @app.route("/clear", methods=["POST"])
@@ -83,7 +84,7 @@ def clear():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, threaded=True)
 
 # Run the Flask app and access it in your browser at http://127.0.0.1:5000
 # python3 .\3_AI_ChatBot_Flask.py
