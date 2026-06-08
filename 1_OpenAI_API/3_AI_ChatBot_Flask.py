@@ -86,5 +86,7 @@ def clear():
 if __name__ == "__main__":
     app.run(debug=True, threaded=True)
 
-# Run the Flask app and access it in your browser at http://127.0.0.1:5000
-# python3 .\3_AI_ChatBot_Flask.py
+
+
+# Run the code "python3 .\3_AI_ChatBot_Flask.py"
+# Access the web in your browser at http://127.0.0.1:5000
