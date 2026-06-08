@@ -1,68 +1,86 @@
-"""Flask is a web framework for Python.
-   Flask allows developers to create RESTful APIs and server-side web applications.
-"""
-from flask import Flask, render_template, request, session, redirect, url_for
+"""Flask web application for an OpenAI-powered chatbot."""
+from flask import Flask, Response, jsonify, render_template, request, session, redirect, url_for
 from openai import OpenAI
+import json
 import os
 
 app = Flask(__name__)
-app.secret_key = "replace_this_with_a_secure_random_secret_key"
+app.secret_key = os.getenv("FLASK_SECRET_KEY", "replace_this_with_a_secure_random_secret_key")
 
-# Load API key from environment variable
 api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
     raise ValueError("OPENAI_API_KEY environment variable not set")
 
 client = OpenAI(api_key=api_key)
 
-SYSTEM_MESSAGE = {"role": "system", "content": "You are a helpful math tutor that speaks concisely."
-                                    "If requested skills are non related to math learning, return the message:"
-                                    "'Apologies, we are no longer supporting other skills.'"}
+SYSTEM_MESSAGE = {
+    "role": "system",
+    "content": (
+        "You are a helpful math tutor that speaks concisely. "
+        "Use clear step-by-step explanations when useful. "
+        "If requested skills are not related to math learning, return the message: "
+        "'Apologies, we are no longer supporting other skills.'"
+    ),
+}
+
 
 def initialize_chat():
     session["messages"] = [SYSTEM_MESSAGE]
 
 
-@app.route("/", methods=["GET", "POST"])
+@app.route("/", methods=["GET"])
 def index():
     if "messages" not in session:
         initialize_chat()
 
-    if request.method == "POST":
-        user_input = request.form.get("user_input", "").strip()
-
-        if user_input:
-            messages = session["messages"]
-
-            # Append user message
-            messages.append({"role": "user", "content": user_input})
-
-            # Create API request
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                max_completion_tokens=100,
-                messages=messages
-            )
-
-            # Extract assistant reply
-            assistant_reply = response.choices[0].message.content
-
-            # Append assistant message
-            messages.append({"role": "assistant", "content": assistant_reply})
-
-            # Save updated chat
-            session["messages"] = messages
-
-        return redirect(url_for("index"))
-
-    # Exclude system message from display
     visible_messages = session["messages"][1:]
     return render_template("index.html", messages=visible_messages)
+
+
+@app.route("/chat", methods=["POST"])
+def chat():
+    if "messages" not in session:
+        initialize_chat()
+
+    user_input = request.json.get("user_input", "").strip() if request.is_json else ""
+    if not user_input:
+        return jsonify({"error": "Message cannot be empty."}), 400
+
+    messages = session["messages"]
+    messages.append({"role": "user", "content": user_input})
+    session["messages"] = messages
+
+    def generate():
+        assistant_reply = ""
+        try:
+            stream = client.chat.completions.create(
+                model="gpt-4o-mini",
+                max_completion_tokens=300,
+                messages=messages,
+                stream=True,
+            )
+
+            for chunk in stream:
+                token = chunk.choices[0].delta.content or ""
+                if token:
+                    assistant_reply += token
+                    yield f"data: {json.dumps({'token': token})}\n\n"
+
+            messages.append({"role": "assistant", "content": assistant_reply})
+            session["messages"] = messages
+            yield "data: [DONE]\n\n"
+
+        except Exception as exc:
+            yield f"data: {json.dumps({'error': str(exc)})}\n\n"
+
+    return Response(generate(), mimetype="text/event-stream")
+
 
 @app.route("/clear", methods=["POST"])
 def clear():
     initialize_chat()
     return redirect(url_for("index"))
+
 
 if __name__ == "__main__":
     app.run(debug=True)
