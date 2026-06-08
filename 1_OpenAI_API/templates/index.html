@@ -3,122 +3,485 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpenAI Flask Chatbot</title>
+    <title>AI Engineer Chatbot</title>
     <style>
+        :root {
+            --bg: #0f172a;
+            --panel: #111827;
+            --panel-soft: #1f2937;
+            --surface: #f8fafc;
+            --surface-soft: #eef2f7;
+            --text: #111827;
+            --muted: #64748b;
+            --border: #e2e8f0;
+            --accent: #10a37f;
+            --accent-dark: #0f8f70;
+            --assistant: #ffffff;
+            --user: #dcfce7;
+            --shadow: 0 24px 70px rgba(15, 23, 42, 0.20);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            background: #f4f6f8;
+            min-height: 100vh;
             margin: 0;
-            padding: 0;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(16, 163, 127, 0.22), transparent 35%),
+                linear-gradient(135deg, #0f172a 0%, #1e293b 42%, #334155 100%);
         }
 
-        .container {
-            width: 70%;
-            max-width: 900px;
-            margin: 40px auto;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 0 12px rgba(0,0,0,0.08);
-            overflow: hidden;
+        .app-shell {
+            display: grid;
+            grid-template-columns: 290px minmax(0, 1fr);
+            min-height: 100vh;
+            padding: 22px;
+            gap: 22px;
         }
 
-        .header {
-            background: #1f2937;
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            color: #e5e7eb;
+            background: rgba(15, 23, 42, 0.82);
+            border: 1px solid rgba(226, 232, 240, 0.12);
+            border-radius: 28px;
+            padding: 24px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(18px);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+
+        .brand-icon {
+            display: grid;
+            place-items: center;
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--accent), #22c55e);
             color: white;
-            padding: 20px;
-            font-size: 24px;
-            font-weight: bold;
+            font-weight: 800;
+            letter-spacing: -0.04em;
+        }
+
+        .brand h1 {
+            margin: 0;
+            font-size: 1.05rem;
+            line-height: 1.2;
+        }
+
+        .brand p,
+        .sidebar-note {
+            margin: 4px 0 0;
+            color: #94a3b8;
+            font-size: 0.86rem;
+            line-height: 1.5;
+        }
+
+        .new-chat-button {
+            width: 100%;
+            border: 1px solid rgba(226, 232, 240, 0.20);
+            border-radius: 16px;
+            padding: 13px 14px;
+            color: #f8fafc;
+            background: rgba(255, 255, 255, 0.06);
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.18s ease, background 0.18s ease;
+        }
+
+        .new-chat-button:hover {
+            transform: translateY(-1px);
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .feature-list {
+            display: grid;
+            gap: 12px;
+            margin: 28px 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .feature-list li {
+            padding: 14px;
+            border: 1px solid rgba(226, 232, 240, 0.10);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.04);
+            color: #cbd5e1;
+            font-size: 0.9rem;
+            line-height: 1.45;
+        }
+
+        .chat-card {
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            min-height: calc(100vh - 44px);
+            overflow: hidden;
+            border-radius: 30px;
+            background: rgba(248, 250, 252, 0.97);
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(255, 255, 255, 0.55);
+        }
+
+        .chat-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            padding: 22px 28px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.82);
+            backdrop-filter: blur(12px);
+        }
+
+        .chat-header h2 {
+            margin: 0;
+            font-size: 1.25rem;
+            letter-spacing: -0.03em;
+        }
+
+        .chat-header p {
+            margin: 5px 0 0;
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+            color: #065f46;
+            background: #d1fae5;
+            border: 1px solid #a7f3d0;
+            border-radius: 999px;
+            padding: 8px 12px;
+            font-size: 0.86rem;
+            font-weight: 700;
+        }
+
+        .status-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 999px;
+            background: var(--accent);
+            box-shadow: 0 0 0 5px rgba(16, 163, 127, 0.12);
         }
 
         .chat-box {
-            padding: 20px;
-            min-height: 400px;
-            max-height: 500px;
             overflow-y: auto;
-            background: #fafafa;
+            padding: 30px clamp(18px, 4vw, 64px);
+            background:
+                linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(241, 245, 249, 0.95)),
+                radial-gradient(circle at 75% 20%, rgba(16, 163, 127, 0.08), transparent 30%);
         }
 
-        .message {
-            margin-bottom: 16px;
-            padding: 12px 14px;
-            border-radius: 10px;
-            line-height: 1.5;
-            white-space: pre-wrap;
+        .empty-state {
+            max-width: 720px;
+            margin: 7vh auto 0;
+            text-align: center;
         }
 
-        .user {
-            background: #dbeafe;
-            text-align: right;
+        .empty-state h3 {
+            margin: 0 0 12px;
+            font-size: clamp(1.8rem, 4vw, 3rem);
+            letter-spacing: -0.06em;
         }
 
-        .assistant {
-            background: #e5e7eb;
+        .empty-state p {
+            margin: 0 auto 26px;
+            max-width: 560px;
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        .prompt-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+            margin-top: 24px;
             text-align: left;
         }
 
+        .prompt-card {
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 16px;
+            background: white;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+        }
+
+        .prompt-card strong {
+            display: block;
+            margin-bottom: 6px;
+            color: #0f172a;
+        }
+
+        .prompt-card span {
+            color: var(--muted);
+            font-size: 0.92rem;
+            line-height: 1.5;
+        }
+
+        .message-row {
+            display: flex;
+            gap: 14px;
+            max-width: 920px;
+            margin: 0 auto 22px;
+        }
+
+        .message-row.user {
+            flex-direction: row-reverse;
+        }
+
+        .avatar {
+            flex: 0 0 38px;
+            display: grid;
+            place-items: center;
+            width: 38px;
+            height: 38px;
+            border-radius: 13px;
+            color: white;
+            font-weight: 800;
+            box-shadow: 0 10px 18px rgba(15, 23, 42, 0.14);
+        }
+
+        .avatar.user-avatar {
+            background: #2563eb;
+        }
+
+        .avatar.assistant-avatar {
+            background: var(--accent);
+        }
+
+        .message {
+            max-width: min(760px, 78%);
+            padding: 15px 17px;
+            border-radius: 18px;
+            line-height: 1.65;
+            white-space: pre-wrap;
+            box-shadow: 0 10px 26px rgba(15, 23, 42, 0.07);
+            border: 1px solid rgba(226, 232, 240, 0.85);
+        }
+
+        .message-row.user .message {
+            background: var(--user);
+            border-top-right-radius: 6px;
+        }
+
+        .message-row.assistant .message {
+            background: var(--assistant);
+            border-top-left-radius: 6px;
+        }
+
         .label {
-            font-weight: bold;
-            margin-bottom: 5px;
+            margin-bottom: 6px;
+            color: #334155;
+            font-size: 0.78rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .composer {
+            border-top: 1px solid var(--border);
+            padding: 18px clamp(18px, 4vw, 64px) 22px;
+            background: rgba(255, 255, 255, 0.90);
         }
 
         .form-area {
             display: flex;
-            gap: 10px;
-            padding: 20px;
-            border-top: 1px solid #ddd;
-            background: #fff;
+            align-items: center;
+            gap: 12px;
+            max-width: 920px;
+            margin: 0 auto;
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 22px;
+            background: white;
+            box-shadow: 0 18px 45px rgba(15, 23, 42, 0.10);
         }
 
         .form-area input[type="text"] {
             flex: 1;
-            padding: 12px;
-            font-size: 16px;
+            min-width: 0;
+            border: 0;
+            outline: 0;
+            padding: 13px 14px;
+            font-size: 1rem;
+            background: transparent;
+            color: var(--text);
         }
 
-        .form-area button,
-        .clear-form button {
-            padding: 12px 18px;
-            font-size: 16px;
+        .form-area input[type="text"]::placeholder {
+            color: #94a3b8;
+        }
+
+        .send-button {
+            display: inline-grid;
+            place-items: center;
+            min-width: 48px;
+            height: 48px;
+            border: 0;
+            border-radius: 16px;
+            color: white;
+            background: var(--accent);
+            font-weight: 900;
             cursor: pointer;
+            transition: transform 0.18s ease, background 0.18s ease;
         }
 
-        .clear-form {
-            padding: 0 20px 20px 20px;
-            background: #fff;
+        .send-button:hover {
+            transform: translateY(-1px);
+            background: var(--accent-dark);
+        }
+
+        .helper-text {
+            max-width: 920px;
+            margin: 10px auto 0;
+            color: var(--muted);
+            font-size: 0.82rem;
+            text-align: center;
+        }
+
+        @media (max-width: 860px) {
+            .app-shell {
+                grid-template-columns: 1fr;
+                padding: 12px;
+            }
+
+            .sidebar {
+                display: none;
+            }
+
+            .chat-card {
+                min-height: calc(100vh - 24px);
+                border-radius: 22px;
+            }
+
+            .chat-header {
+                align-items: flex-start;
+                flex-direction: column;
+                padding: 18px;
+            }
+
+            .prompt-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .message {
+                max-width: 84%;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">OpenAI Flask Chatbot</div>
-
-        <div class="chat-box">
-            {% if messages %}
-                {% for msg in messages %}
-                    <div class="message {{ msg.role }}">
-                        <div class="label">
-                            {% if msg.role == "user" %}
-                                User
-                            {% elif msg.role == "assistant" %}
-                                Assistant
-                            {% endif %}
-                        </div>
-                        <div>{{ msg.content }}</div>
+    <main class="app-shell">
+        <aside class="sidebar" aria-label="Application sidebar">
+            <section>
+                <div class="brand">
+                    <div class="brand-icon">AI</div>
+                    <div>
+                        <h1>AI Engineer Chatbot</h1>
+                        <p>Flask + OpenAI API</p>
                     </div>
-                {% endfor %}
-            {% else %}
-                <p>No messages yet.</p>
-            {% endif %}
-        </div>
+                </div>
 
-        <form method="POST" class="form-area">
-            <input type="text" name="user_input" placeholder="Type your message here..." required>
-            <button type="submit">Send</button>
-        </form>
+                <form method="POST" action="/clear">
+                    <button type="submit" class="new-chat-button">+ New chat</button>
+                </form>
 
-        <form method="POST" action="/clear" class="clear-form">
-            <button type="submit">Clear Chat</button>
-        </form>
-    </div>
+                <ul class="feature-list">
+                    <li><strong>Portfolio-ready UI</strong><br>Modern, responsive chat interface inspired by professional AI products.</li>
+                    <li><strong>Session memory</strong><br>Conversation history is preserved during the browser session.</li>
+                    <li><strong>Math tutor mode</strong><br>Optimized for concise tutoring responses from the backend system prompt.</li>
+                </ul>
+            </section>
+
+            <p class="sidebar-note">Built by Mohammad Hafezan as part of the Associate AI Engineer career track.</p>
+        </aside>
+
+        <section class="chat-card" aria-label="Chatbot conversation">
+            <header class="chat-header">
+                <div>
+                    <h2>OpenAI Flask Chatbot</h2>
+                    <p>Ask a math-learning question and receive a concise AI-generated explanation.</p>
+                </div>
+                <div class="status-pill"><span class="status-dot"></span> Online</div>
+            </header>
+
+            <div class="chat-box" id="chat-box">
+                {% if messages %}
+                    {% for msg in messages %}
+                        <div class="message-row {{ msg.role }}">
+                            <div class="avatar {{ msg.role }}-avatar">
+                                {% if msg.role == "user" %}U{% elif msg.role == "assistant" %}AI{% endif %}
+                            </div>
+                            <article class="message">
+                                <div class="label">
+                                    {% if msg.role == "user" %}
+                                        You
+                                    {% elif msg.role == "assistant" %}
+                                        Assistant
+                                    {% endif %}
+                                </div>
+                                <div>{{ msg.content }}</div>
+                            </article>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <section class="empty-state">
+                        <h3>How can I help you learn today?</h3>
+                        <p>This chatbot uses Flask on the backend and the OpenAI API for AI responses. The interface is designed to look polished, clean, and portfolio-ready.</p>
+                        <div class="prompt-grid">
+                            <div class="prompt-card">
+                                <strong>Explain a concept</strong>
+                                <span>Example: Explain derivatives with a simple numerical example.</span>
+                            </div>
+                            <div class="prompt-card">
+                                <strong>Solve step by step</strong>
+                                <span>Example: Solve a quadratic equation and show each step.</span>
+                            </div>
+                            <div class="prompt-card">
+                                <strong>Check my answer</strong>
+                                <span>Example: Check whether my probability solution is correct.</span>
+                            </div>
+                            <div class="prompt-card">
+                                <strong>Practice questions</strong>
+                                <span>Example: Give me three linear algebra practice problems.</span>
+                            </div>
+                        </div>
+                    </section>
+                {% endif %}
+            </div>
+
+            <footer class="composer">
+                <form method="POST" class="form-area">
+                    <input type="text" name="user_input" placeholder="Message the AI tutor..." autocomplete="off" required autofocus>
+                    <button type="submit" class="send-button" aria-label="Send message">➜</button>
+                </form>
+                <p class="helper-text">Responses are generated by the OpenAI API. Avoid sharing private or sensitive information.</p>
+            </footer>
+        </section>
+    </main>
+
+    <script>
+        const chatBox = document.getElementById("chat-box");
+        if (chatBox) {
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+    </script>
 </body>
 </html>
