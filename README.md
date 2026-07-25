@@ -7,8 +7,9 @@ A comprehensive collection of hands-on projects demonstrating practical applicat
 - [Project Overview](#project-overview)
 - [Repository Structure](#repository-structure)
 - [Getting Started](#getting-started)
-- [Module 1: OpenAI API](#module-1-openai-api)
+- [Module 1: OpenAI Chat Completions API](#module-1-openai-chat-completions-api)
 - [Module 2: HuggingFace Transformers](#module-2-huggingface-transformers)
+- [Module 3: OpenAI Responses API](#module-3-openai-responses-api)
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Environment Setup](#environment-setup)
@@ -32,7 +33,7 @@ This project is designed for aspiring AI Engineers participating in DataCamp's A
 
 ```
 Associate_AI_Engineer_Career_Track/
-├── 1_OpenAI_API/
+├── 1_OpenAI_Chat_Completion_API/
 │   ├── 1_Fundamentals.py
 │   ├── 2_AI_ChatBot_Terminal.py
 │   ├── 3_AI_ChatBot_Flask.py
@@ -43,6 +44,8 @@ Associate_AI_Engineer_Career_Track/
 │   ├── 2_Task_Text_Classification_Model_Bart.py
 │   ├── 3_Task_Text_Classification_AutoModel_AutoTokenizer.py
 │   └── 4_Task_DocumentQA_Model_Bert.py
+├── 3_OpenAI_Responses_API/
+│   └── agentic_chatbot_terminal.py
 ├── README.md
 └── LICENSE
 ```
@@ -75,7 +78,7 @@ Associate_AI_Engineer_Career_Track/
 
 ---
 
-## 🔌 Module 1: OpenAI API
+## 🔌 Module 1: OpenAI Chat Completions API
 
 This module demonstrates practical patterns for integrating with OpenAI's Chat Completions API, progressing from simple CLI tools to full-featured web applications.
 
@@ -98,7 +101,7 @@ This module demonstrates practical patterns for integrating with OpenAI's Chat C
 
 **Example Usage**:
 ```bash
-python 1_OpenAI_API/1_Fundamentals.py \
+python 1_OpenAI_Chat_Completion_API/1_Fundamentals.py \
   --model gpt-4o-mini \
   --user_content "I want to learn to speak Dutch. Create a study plan for me." \
   --max_completion_tokens 400 \
@@ -133,7 +136,7 @@ python 1_OpenAI_API/1_Fundamentals.py \
 
 **Example Usage**:
 ```bash
-python 1_OpenAI_API/2_AI_ChatBot_Terminal.py
+python 1_OpenAI_Chat_Completion_API/2_AI_ChatBot_Terminal.py
 ```
 
 **Interaction Example**:
@@ -176,7 +179,7 @@ Assistant: Sure! Let me break it down...
 
 **Example Usage**:
 ```bash
-python 1_OpenAI_API/3_AI_ChatBot_Flask.py
+python 1_OpenAI_Chat_Completion_API/3_AI_ChatBot_Flask.py
 ```
 
 Then visit `http://127.0.0.1:5000` in your browser.
@@ -340,6 +343,52 @@ Answer: "Employees receive 20 days of paid vacation annually."
 
 ---
 
+## 🧠 Module 3: OpenAI Responses API
+
+This module demonstrates a stateful, streaming terminal chatbot built with the OpenAI Responses API.
+
+### 3.1 Agentic Math Chatbot (`agentic_chatbot_terminal.py`)
+
+**Purpose**: Build a focused mathematics tutor using a reasoning model while preserving multi-turn context without repeatedly sending the complete message history.
+
+**Key Features**:
+- OpenAI Responses API
+- `gpt-5.4-mini` with low reasoning effort
+- Maximum output limit of 400 tokens
+- Real-time streaming in the terminal
+- Multi-turn context using `previous_response_id`
+- Mathematics-only instructions and guardrails
+- Plain-text and Unicode math formatting for terminal compatibility
+- Secure API-key loading from `OPENAI_API_KEY`
+
+**Example Usage**:
+```powershell
+python .\3_OpenAI_Responses_API\agentic_chatbot_terminal.py
+```
+
+**Interaction Example**:
+```text
+Chatbot is running. Type 'exit' to quit.
+
+User: Give me the formula for the area of a circle.
+Assistant: A = πr²
+
+where:
+- A = area
+- r = radius
+- π ≈ 3.14159
+```
+
+**Key Concepts**:
+- Responses API: Generates stateful model responses
+- Reasoning effort: Uses `low` reasoning for concise mathematical help
+- Response chaining: Passes `previous_response_id` into the next request
+- Streaming events: Prints `response.output_text.delta` events as they arrive
+- Guardrails: Rejects requests unrelated to mathematics
+- Model compatibility: Uses the model's default sampling because `temperature` is not supported
+
+---
+
 ## 📦 Requirements
 
 ### Core Dependencies
@@ -452,7 +501,7 @@ python -c "import os; print('API Key set:', bool(os.getenv('OPENAI_API_KEY')))"
 #### Example 1: Generate a Language Learning Plan
 
 ```bash
-python 1_OpenAI_API/1_Fundamentals.py \
+python 1_OpenAI_Chat_Completion_API/1_Fundamentals.py \
   --model gpt-4o-mini \
   --user_content "I want to learn to speak French. Create a 30-day study plan." \
   --max_completion_tokens 500 \
@@ -463,7 +512,7 @@ python 1_OpenAI_API/1_Fundamentals.py \
 #### Example 2: Interactive Math Tutor
 
 ```bash
-python 1_OpenAI_API/2_AI_ChatBot_Terminal.py
+python 1_OpenAI_Chat_Completion_API/2_AI_ChatBot_Terminal.py
 ```
 
 Then interact:
@@ -478,10 +527,18 @@ Assistant: The power rule states that for a function f(x) = x^n...
 #### Example 3: Web-Based Chatbot
 
 ```bash
-python 1_OpenAI_API/3_AI_ChatBot_Flask.py
+python 1_OpenAI_Chat_Completion_API/3_AI_ChatBot_Flask.py
 ```
 
 Open browser to `http://127.0.0.1:5000`
+
+#### Example 4: Streaming Responses API Math Tutor
+
+```powershell
+python .\3_OpenAI_Responses_API\agentic_chatbot_terminal.py
+```
+
+The chatbot streams its answers and retains conversation context by chaining each request with `previous_response_id`.
 
 ### HuggingFace Module Examples
 
@@ -547,6 +604,8 @@ By completing this project, you will understand:
 ### API Integration
 - ✅ Authenticating with modern AI APIs
 - ✅ Crafting effective API requests
+- ✅ Using both Chat Completions and Responses APIs
+- ✅ Streaming Responses API output events
 - ✅ Error handling and validation
 - ✅ Cost estimation and monitoring
 
@@ -561,6 +620,7 @@ By completing this project, you will understand:
 - ✅ Terminal-based interactive applications
 - ✅ Web frameworks (Flask) integration
 - ✅ Session management and state persistence
+- ✅ Multi-turn response chaining with `previous_response_id`
 
 ### NLP Tasks
 - ✅ Text generation and completion
@@ -614,9 +674,9 @@ By completing this project, you will understand:
 Suggested improvements to extend these projects:
 
 ### OpenAI Module
-- [ ] Add streaming response support for real-time output
+- [x] Add streaming response support for real-time output
 - [ ] Implement conversation persistence to database
-- [ ] Add multi-turn conversation management
+- [x] Add multi-turn conversation management
 - [ ] Create conversation history export (PDF/JSON)
 - [ ] Implement rate limiting and usage analytics
 - [ ] Add user authentication and multi-user support
@@ -650,6 +710,7 @@ Suggested improvements to extend these projects:
 ### OpenAI Documentation
 - [OpenAI API Reference](https://platform.openai.com/docs/api-reference)
 - [Chat Completions Guide](https://platform.openai.com/docs/guides/gpt)
+- [Responses API Guide](https://developers.openai.com/api/docs/guides/responses)
 - [Prompt Engineering Best Practices](https://platform.openai.com/docs/guides/prompt-engineering)
 
 ### HuggingFace Documentation
@@ -697,6 +758,6 @@ For questions, issues, or feedback:
 
 ---
 
-**Last Updated**: May 2026  
+**Last Updated**: July 2026
 **Python Version**: 3.8+  
 **Status**: Active Development
