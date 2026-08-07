@@ -28,12 +28,12 @@ while True:
     # Capture user input from PowerShell terminal
     user_input = input("User: ")
 
-    # Exit condition
+    # (1) Control Flow Mechanism
     if user_input.lower() in ["exit", "quit"]:
         print("Chatbot terminated.")
         break
 
-    # Responses API request
+    # (2) Responses API request
     response = client.responses.create(
         model="gpt-5.4-mini",
         reasoning={"effort": "low"},
@@ -44,14 +44,14 @@ while True:
         stream=True
     )
 
-    # Stream the assistant response and save its ID for the next turn
+    # (3) Stream the assistant response and save its ID for the next turn
     print("Assistant: ", end="", flush=True)
 
-    for event in response:
-        if event.type == "response.created":
-            previous_response_id = event.response.id
-        elif event.type == "response.output_text.delta":
-            print(event.delta, end="", flush=True)
+    for item in response:
+        if item.type == "response.created":
+            previous_response_id = item.response.id
+        elif item.type == "response.output_text.delta":
+            print(item.delta, end="", flush=True)
 
     print("\n")
 
