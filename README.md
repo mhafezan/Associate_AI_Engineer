@@ -347,9 +347,9 @@ Answer: "Employees receive 20 days of paid vacation annually."
 
 This module demonstrates a stateful, streaming terminal chatbot built with the OpenAI Responses API.
 
-### 3.1 Agentic Math Chatbot (`agentic_chatbot_terminal.py`)
+### 3.1 Global Tour Guide Chatbot (`agentic_chatbot_terminal.py`)
 
-**Purpose**: Build a focused mathematics tutor using a reasoning model while preserving multi-turn context without repeatedly sending the complete message history.
+**Purpose**: Build a global tour guide that can answer travel questions with current online information while preserving multi-turn context without repeatedly sending the complete message history.
 
 **Key Features**:
 - OpenAI Responses API
@@ -357,8 +357,11 @@ This module demonstrates a stateful, streaming terminal chatbot built with the O
 - Maximum output limit of 400 tokens
 - Real-time streaming in the terminal
 - Multi-turn context using `previous_response_id`
-- Mathematics-only instructions and guardrails
-- Plain-text and Unicode math formatting for terminal compatibility
+- Built-in web search using `tools=[{"type": "web_search"}]`
+- Travel guidance for attractions, culture, food, transportation, accommodations, itineraries, budgets, weather, accessibility, entry requirements, and safety
+- Current, location-specific answers for opening hours, prices, events, schedules, entry rules, and travel advisories
+- Instructions to distinguish verified current facts from general travel guidance
+- Concise, practical output formatted for a plain-text terminal
 - Secure API-key loading from `OPENAI_API_KEY`
 
 **Example Usage**:
@@ -370,21 +373,19 @@ python .\3_OpenAI_Responses_API\agentic_chatbot_terminal.py
 ```text
 Chatbot is running. Type 'exit' to quit.
 
-User: Give me the formula for the area of a circle.
-Assistant: A = πr²
+Hi! Where would you like to explore today?
 
-where:
-- A = area
-- r = radius
-- π ≈ 3.14159
+User: What are the best attractions to visit in Toronto this weekend?
+Assistant: Here are several current options for Toronto this weekend...
 ```
 
 **Key Concepts**:
 - Responses API: Generates stateful model responses
-- Reasoning effort: Uses `low` reasoning for concise mathematical help
+- Reasoning effort: Uses `low` reasoning for concise travel assistance
 - Response chaining: Passes `previous_response_id` into the next request
 - Streaming events: Prints `response.output_text.delta` events as they arrive
-- Guardrails: Rejects requests unrelated to mathematics
+- Web search tool: Produces a `web_search_call` when current online information is needed
+- Travel guardrails: Encourages confirmation of important requirements with official authorities before booking or departure
 - Model compatibility: Uses the model's default sampling because `temperature` is not supported
 
 ---
@@ -532,13 +533,13 @@ python 1_OpenAI_Chat_Completion_API/3_AI_ChatBot_Flask.py
 
 Open browser to `http://127.0.0.1:5000`
 
-#### Example 4: Streaming Responses API Math Tutor
+#### Example 4: Streaming Responses API Global Tour Guide
 
 ```powershell
 python .\3_OpenAI_Responses_API\agentic_chatbot_terminal.py
 ```
 
-The chatbot streams its answers and retains conversation context by chaining each request with `previous_response_id`.
+The chatbot can search the web for current travel information, streams its answers, and retains conversation context by chaining each request with `previous_response_id`.
 
 ### HuggingFace Module Examples
 
@@ -606,6 +607,7 @@ By completing this project, you will understand:
 - ✅ Crafting effective API requests
 - ✅ Using both Chat Completions and Responses APIs
 - ✅ Streaming Responses API output events
+- ✅ Using hosted web search in Responses API applications
 - ✅ Error handling and validation
 - ✅ Cost estimation and monitoring
 
@@ -758,6 +760,6 @@ For questions, issues, or feedback:
 
 ---
 
-**Last Updated**: July 2026
+**Last Updated**: August 2026
 **Python Version**: 3.8+  
 **Status**: Active Development
