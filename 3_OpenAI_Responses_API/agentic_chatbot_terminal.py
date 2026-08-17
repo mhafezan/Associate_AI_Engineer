@@ -56,10 +56,9 @@ while True:
         if item.type == "response.created":
             previous_response_id = item.response.id
         elif item.type == "response.output_text.delta":
-            print(item.delta, end="", flush=True)
+                    print(item.delta, end="", flush=True)
 
     print("\n")
-
 
 # Run from the project root:
 # python .\3_OpenAI_Responses_API\agentic_chatbot_terminal.py
