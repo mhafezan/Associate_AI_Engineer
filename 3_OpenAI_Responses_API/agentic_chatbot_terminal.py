@@ -122,11 +122,11 @@ while True:
     # Stream any immediate text and retain the completed response for inspecting items for a function_call.
     print("Assistant: ", end="", flush=True)
     response = None
-    for item in response_first:
-        if item.type == "response.output_text.delta":
-            print(item.delta, end="", flush=True)
-        elif item.type == "response.completed":
-            response = item.response
+    for event in response_first:
+        if event.type == "response.output_text.delta":
+            print(event.delta, end="", flush=True)
+        elif event.type == "response.completed":
+            response = event.response
 
     if response is None:
         print("The model did not return a completed response.\n")
@@ -134,16 +134,16 @@ while True:
 
     # (3) Process function calls and execute the timezone lookup function.
     function_outputs = []
-    for item in response.output:
-        if item.type == "function_call" and item.name == "get_location_timezone":
+    for event in response.output:
+        if event.type == "function_call" and event.name == "get_location_timezone":
             # Convert the model's JSON arguments into Python keyword arguments.
-            function_arguments = json.loads(item.arguments)
+            function_arguments = json.loads(event.arguments)
             timezone_result = get_location_timezone(**function_arguments)
 
             # Pair the function result with the model's original call ID.
             function_outputs.append({
                 "type": "function_call_output",
-                "call_id": item.call_id,
+                "call_id": event.call_id,
                 "output": json.dumps(timezone_result)
             })
 
@@ -161,11 +161,11 @@ while True:
         )
 
         # Stream the final natural-language answer and save its response ID.
-        for item in response_second:
-            if item.type == "response.output_text.delta":
-                print(item.delta, end="", flush=True)
-            elif item.type == "response.completed":
-                previous_response_id = item.response.id
+        for event in response_second:
+            if event.type == "response.output_text.delta":
+                print(event.delta, end="", flush=True)
+            elif event.type == "response.completed":
+                previous_response_id = event.response.id
     else:
         # No local function was requested, so continue from the first response.
         previous_response_id = response.id
