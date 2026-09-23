@@ -1,16 +1,19 @@
-"""Search Shopify products with persistent local ChromaDB storage.
+"""
+Search Shopify products with persistent local ChromaDB storage.
 
 Install: python -m pip install chromadb openai
-Set OPENAI_API_KEY for -init and -query. Run with -help for commands.
+Set OPENAI_API_KEY for -init and -query.
+Run with -help for commands.
+
 Dataset: https://huggingface.co/datasets/Shopify/product-catalogue (Apache-2.0)
 """
 
 import argparse
 import json
 import os
-from pathlib import Path
 import shlex
 import sys
+from pathlib import Path
 from urllib.error import URLError
 from urllib.parse import urlencode
 from urllib.request import urlopen
@@ -23,7 +26,6 @@ from openai import OpenAIError
 MODEL = "text-embedding-3-small"
 COLLECTION_NAME = "shopify_products"
 DB_PATH = Path(__file__).resolve().parent / "chroma_db"
-
 
 def load_products(limit=2048):
     """Download up to limit source rows without creating a file cache."""
@@ -60,7 +62,6 @@ def load_products(limit=2048):
         raise ValueError("The dataset returned no usable products.")
     return products
 
-
 def create_product_text(product):
     """Combine the product fields into one searchable string."""
     return (
@@ -69,7 +70,6 @@ def create_product_text(product):
         f"Category: {product['category']}\n"
         f"Features: {'; '.join(product['features'])}"
     )
-
 
 def initialize_collection(collection, limit):
     products = load_products(limit)
@@ -90,7 +90,6 @@ def initialize_collection(collection, limit):
         print(f"Stored {start + len(batch):,}/{len(products):,} products...", flush=True)
     print(f"{collection.name}: {collection.count():,} documents stored in {DB_PATH}")
 
-
 def find_n_closest(query_text, collection, n=5):
     """Let Chroma embed the query and retrieve the nearest stored documents."""
     count = collection.count()
@@ -101,9 +100,9 @@ def find_n_closest(query_text, collection, n=5):
         include=["documents", "metadatas", "distances"],
     )
 
-
 def run_command(argv):
-    parser = argparse.ArgumentParser(description=__doc__, add_help=False, allow_abbrev=False)
+
+    parser = argparse.ArgumentParser(description="Embedding-based Semantic Search Engine using Chroma Database", add_help=False, allow_abbrev=False)
     parser.add_argument("-help", "--help", "-h", action="help", help="Show this help and exit")
     actions = parser.add_mutually_exclusive_group(required=True)
     actions.add_argument("-init", "--init", action="store_true", help="Download and upsert Shopify products")
@@ -115,6 +114,7 @@ def run_command(argv):
     parser.add_argument("-n_results", "--n_results", type=int, help="Matches for -query (default: 5)")
     parser.add_argument("text", nargs="?", metavar="TEXT", help="Quoted search text for -query")
     args = parser.parse_args(argv)
+
     if args.limit is not None and (not args.init or args.limit < 1):
         parser.error("-limit must be positive and used with -init")
     if args.n_results is not None and (not args.query or args.n_results < 1):
@@ -127,6 +127,7 @@ def run_command(argv):
         parser.error("Set OPENAI_API_KEY before using -init or -query")
 
     client = chromadb.PersistentClient(path=str(DB_PATH))
+
     if args.list:
         collections = client.list_collections()
         print("\n".join(collection.name for collection in collections) or "No collections. Run -init first.")
@@ -142,30 +143,33 @@ def run_command(argv):
         return
 
     embedding_function = OpenAIEmbeddingFunction(model_name=MODEL)
+
     if args.init:
         collection = client.get_or_create_collection(
             name=COLLECTION_NAME, embedding_function=embedding_function,
-            configuration={"hnsw": {"space": "cosine"}},
-        )
+            configuration={"hnsw": {"space": "cosine"}})
+        
         initialize_collection(collection, args.limit if args.limit is not None else 2048)
+
     else:
         collection = client.get_collection(COLLECTION_NAME, embedding_function=embedding_function)
         query_text = args.text.strip()
         hits = find_n_closest(query_text, collection, args.n_results or 5)
+
         print(f'Search results for "{query_text}"')
-        for rank, (document, distance) in enumerate(
-            zip(hits["documents"][0], hits["distances"][0]), start=1
-        ):
+        for rank, (document, distance) in enumerate(zip(hits["documents"][0], hits["distances"][0]), start=1):
             print(f"\n{rank}. Cosine distance: {distance:.4f}\n{document}")
 
-
 def main():
+
+    # If we launch the script with command line arguments, run the command and exit.
     if len(sys.argv) > 1:
         run_command(sys.argv[1:])
         return
 
-    print('Enter commands such as -help or -query -n_results 5 "summer hat".')
-    print('Type exit to quit.')
+    # If we launch the script without command line arguments, enter an interactive loop.
+    print('Enter your database command. For a list of commands, type -help.')
+    print('Type exit to quit!')
     while True:
         try:
             command = input("\nsearch> ").strip()
@@ -173,23 +177,30 @@ def main():
                 break
             if not command:
                 continue
-            # Parse quoted query text without executing shell commands.
+            # shlex.split() turns the input text into an argument list
             run_command(shlex.split(command))
+
         except SystemExit:
-            # Argparse help and invalid arguments must not end the session.
+            # Invalid arguments must not end the session.
             continue
+
         except (ChromaError, OpenAIError, URLError, OSError, ValueError, KeyError) as error:
-            print(f"Semantic search failed: {error}", file=sys.stderr)
+            print(f"Semantic search engine failed: {error}", file=sys.stderr)
+
         except (EOFError, KeyboardInterrupt):
             break
-    print("\nGoodbye!")
 
+    print("\nGoodbye!")
 
 if __name__ == "__main__":
     try:
         main()
+
+    # Catches Ctrl+C and prints Goodbye!
     except KeyboardInterrupt:
         print("\nGoodbye!")
+
+    # Catches other error types!
     except (ChromaError, OpenAIError, URLError, OSError, ValueError, KeyError) as error:
-        print(f"Semantic search failed: {error}", file=sys.stderr)
+        print(f"Semantic search engine failed: {error}", file=sys.stderr)
         sys.exit(1)
