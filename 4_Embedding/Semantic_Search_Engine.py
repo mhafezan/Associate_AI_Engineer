@@ -1,50 +1,38 @@
-""" Search Shopify products using OpenAI embeddings without a vector database.
-    Dataset: https://huggingface.co/datasets/Shopify/product-catalogue (Apache-2.0)
+"""Search Shopify products with persistent local ChromaDB storage.
+
+Install: python -m pip install chromadb openai
+Set OPENAI_API_KEY for -init and -query. Run with -help for commands.
+Dataset: https://huggingface.co/datasets/Shopify/product-catalogue (Apache-2.0)
 """
 
 import argparse
-import hashlib
 import json
 import os
 from pathlib import Path
+import shlex
 import sys
 from urllib.error import URLError
 from urllib.parse import urlencode
 from urllib.request import urlopen
 
-import numpy as np
-from openai import OpenAI, OpenAIError
-import tiktoken
+import chromadb
+from chromadb.errors import ChromaError
+from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
+from openai import OpenAIError
 
 MODEL = "text-embedding-3-small"
-CACHE_DIR = Path(__file__).resolve().parent / ".semantic_search_cache"
-client = None
+COLLECTION_NAME = "shopify_products"
+DB_PATH = Path(__file__).resolve().parent / "chroma_db"
 
-def load_products(limit=1000):
-    """Download product dictionaries in pages, reusing a local JSON cache."""
-    if limit < 5:
-        raise ValueError("The product limit must be at least 5.")
-    CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    cache_file = CACHE_DIR / f"shopify_train_{limit}_v1.json"
-    if cache_file.exists():
-        try:
-            products = json.loads(cache_file.read_text(encoding="utf-8"))
-            if isinstance(products, list) and len(products) >= 5 and all(
-                isinstance(product, dict)
-                and all(key in product for key in
-                        ("title", "short_description", "category", "features"))
-                for product in products
-            ):
-                return products
-        except (ValueError, TypeError):
-            pass
 
+def load_products(limit=2048):
+    """Download up to limit source rows without creating a file cache."""
     products = []
     offset = 0
-    while len(products) < limit:
+    while offset < limit:
         params = urlencode({
             "dataset": "Shopify/product-catalogue", "config": "default",
-            "split": "train", "offset": offset, "length": min(100, limit - len(products)),
+            "split": "train", "offset": offset, "length": min(100, limit - offset),
         })
         with urlopen(f"https://datasets-server.huggingface.co/rows?{params}", timeout=60) as response:
             page = json.load(response)
@@ -58,20 +46,20 @@ def load_products(limit=1000):
                 continue
             brand = (row.get("ground_truth_brand") or "").strip()
             products.append({
+                "id": f"shopify_train_{item['row_idx']}",
                 "title": title,
-                # Keep descriptions short for display and embedding costs.
                 "short_description": (row.get("product_description") or "").strip()[:2000],
                 "category": row.get("ground_truth_category") or "Uncategorized",
                 "features": [f"Brand: {brand}"] if brand else [],
             })
         offset += len(rows)
-        print(f"Loaded {len(products):,} products...", flush=True)
+        print(f"Downloaded {offset:,} rows ({len(products):,} usable products)...", flush=True)
         if offset >= page["num_rows_total"]:
             break
-    if len(products) < 5:
-        raise ValueError("The dataset returned fewer than five usable products.")
-    cache_file.write_text(json.dumps(products, ensure_ascii=False), encoding="utf-8")
+    if not products:
+        raise ValueError("The dataset returned no usable products.")
     return products
+
 
 def create_product_text(product):
     """Combine the product fields into one searchable string."""
@@ -82,129 +70,119 @@ def create_product_text(product):
         f"Features: {'; '.join(product['features'])}"
     )
 
-def create_embeddings(texts):
-    """Embed a string or list of strings in bounded batches, preserving order."""
-    global client
-    if isinstance(texts, str):
-        texts = [texts]
-    if not texts:
-        return []
-    encoding = tiktoken.encoding_for_model(MODEL)
-    inputs = []
-    for text in texts:
-        if not isinstance(text, str) or not text.strip():
-            raise ValueError("Embedding inputs must be nonempty strings.")
-        tokens = encoding.encode(text, disallowed_special=())
-        if len(tokens) > 8191:
-            raise ValueError("An embedding input exceeds 8,191 tokens; shorten it.")
-        inputs.append(tokens)
-    if client is None:
-        client = OpenAI(timeout=60, max_retries=3)
 
-    embeddings = []
-    start = 0
-    while start < len(inputs):
-        end, token_count = start, 0
-        # Bound both item count and total tokens per request.
-        while end < len(inputs) and end - start < 64:
-            if token_count + len(inputs[end]) > 24000:
-                break
-            token_count += len(inputs[end])
-            end += 1
+def initialize_collection(collection, limit):
+    products = load_products(limit)
+    # Stable source-row IDs make repeated initialization safe from duplicates.
+    for start in range(0, len(products), 32):
+        batch = products[start:start + 32]
+        product_texts = [create_product_text(product) for product in batch]
+        collection.upsert(
+            ids=[product["id"] for product in batch],
+            documents=product_texts,
+            metadatas=[{
+                "title": product["title"],
+                "short_description": product["short_description"],
+                "category": product["category"],
+                "features": "; ".join(product["features"]),
+            } for product in batch],
+        )
+        print(f"Stored {start + len(batch):,}/{len(products):,} products...", flush=True)
+    print(f"{collection.name}: {collection.count():,} documents stored in {DB_PATH}")
 
-        response = client.embeddings.create(
-            model=MODEL,
-            input=inputs[start:end],
-            encoding_format="float")
 
-        data = sorted(response.data, key=lambda item: item.index)
-        if [item.index for item in data] != list(range(end - start)):
-            raise ValueError("The API returned incomplete or misindexed embeddings.")
-        embeddings.extend(item.embedding for item in data)
-        start = end
-        if len(inputs) > 1:
-            print(f"Embedded {start:,}/{len(inputs):,} products...", flush=True)
-    return embeddings
+def find_n_closest(query_text, collection, n=5):
+    """Let Chroma embed the query and retrieve the nearest stored documents."""
+    count = collection.count()
+    if count == 0:
+        raise ValueError("The collection is empty. Run -init first.")
+    return collection.query(
+        query_texts=[query_text], n_results=min(n, count),
+        include=["documents", "metadatas", "distances"],
+    )
 
-def find_n_closest(query_vector, embeddings, n=5):
-    """Return product indices and cosine distances in ascending order."""
-    if n <= 0 or len(embeddings) == 0:
-        return []
-    embeddings = np.asarray(embeddings, dtype=np.float32)
-    query_vector = np.asarray(query_vector, dtype=np.float32)
-    if embeddings.ndim != 2 or query_vector.shape != (embeddings.shape[1],):
-        raise ValueError("Query and product embedding dimensions must match.")
-    if not np.isfinite(embeddings).all() or not np.isfinite(query_vector).all():
-        raise ValueError("Embeddings must contain only finite values.")
-    norms = np.linalg.norm(embeddings, axis=1)
-    query_norm = np.linalg.norm(query_vector)
-    if query_norm == 0 or np.any(norms == 0):
-        raise ValueError("Cosine distance is undefined for zero vectors.")
-    distances = 1 - np.clip((embeddings @ query_vector) / (norms * query_norm), -1, 1)
-    distances_sorted = np.argsort(distances, kind="stable")[:n]
-    return [{"distance": float(distances[index]), "index": int(index)}
-            for index in distances_sorted]
+
+def run_command(argv):
+    parser = argparse.ArgumentParser(description=__doc__, add_help=False, allow_abbrev=False)
+    parser.add_argument("-help", "--help", "-h", action="help", help="Show this help and exit")
+    actions = parser.add_mutually_exclusive_group(required=True)
+    actions.add_argument("-init", "--init", action="store_true", help="Download and upsert Shopify products")
+    actions.add_argument("-list", "--list", action="store_true", help="List local collections")
+    actions.add_argument("-count", "--count", metavar="COLLECTION", help="Count documents in a collection")
+    actions.add_argument("-peek", "--peek", metavar="COLLECTION", help="Show up to 10 items in a collection")
+    actions.add_argument("-query", "--query", action="store_true", help="Search shopify_products using TEXT")
+    parser.add_argument("-limit", "--limit", type=int, help="Source rows for -init (default: 2048)")
+    parser.add_argument("-n_results", "--n_results", type=int, help="Matches for -query (default: 5)")
+    parser.add_argument("text", nargs="?", metavar="TEXT", help="Quoted search text for -query")
+    args = parser.parse_args(argv)
+    if args.limit is not None and (not args.init or args.limit < 1):
+        parser.error("-limit must be positive and used with -init")
+    if args.n_results is not None and (not args.query or args.n_results < 1):
+        parser.error("-n_results must be positive and used with -query")
+    if args.query and (not args.text or not args.text.strip()):
+        parser.error('-query requires nonempty quoted text, e.g. -query -n_results 5 "summer hat"')
+    if args.text is not None and not args.query:
+        parser.error("TEXT can only be used with -query")
+    if (args.init or args.query) and not os.environ.get("OPENAI_API_KEY", "").strip():
+        parser.error("Set OPENAI_API_KEY before using -init or -query")
+
+    client = chromadb.PersistentClient(path=str(DB_PATH))
+    if args.list:
+        collections = client.list_collections()
+        print("\n".join(collection.name for collection in collections) or "No collections. Run -init first.")
+        return
+    if args.count or args.peek:
+        collection = client.get_collection(args.count or args.peek, embedding_function=None)
+        if args.count:
+            print(f"{collection.name}: {collection.count()} documents")
+        else:
+            # Omit embedding arrays from terminal output.
+            hits = collection.get(limit=10, include=["documents", "metadatas"])
+            print(json.dumps(hits, ensure_ascii=False, indent=2))
+        return
+
+    embedding_function = OpenAIEmbeddingFunction(model_name=MODEL)
+    if args.init:
+        collection = client.get_or_create_collection(
+            name=COLLECTION_NAME, embedding_function=embedding_function,
+            configuration={"hnsw": {"space": "cosine"}},
+        )
+        initialize_collection(collection, args.limit if args.limit is not None else 2048)
+    else:
+        collection = client.get_collection(COLLECTION_NAME, embedding_function=embedding_function)
+        query_text = args.text.strip()
+        hits = find_n_closest(query_text, collection, args.n_results or 5)
+        print(f'Search results for "{query_text}"')
+        for rank, (document, distance) in enumerate(
+            zip(hits["documents"][0], hits["distances"][0]), start=1
+        ):
+            print(f"\n{rank}. Cosine distance: {distance:.4f}\n{document}")
+
 
 def main():
+    if len(sys.argv) > 1:
+        run_command(sys.argv[1:])
+        return
 
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--limit", type=int, default=1000, help="Products to load (default: 1000)")
-    args = parser.parse_args()
-
-    if args.limit < 5:
-        parser.error("--limit must be at least 5")
-
-    if not os.environ.get("OPENAI_API_KEY", "").strip():
-        raise ValueError("Set the OPENAI_API_KEY environment variable before running.")
-
-    products = load_products(args.limit)
-    product_texts = [create_product_text(product) for product in products]
-    
-    # Invalidate vectors whenever the model, text, or product order changes.
-    fingerprint = hashlib.sha256(
-        json.dumps([MODEL, product_texts], ensure_ascii=False).encode("utf-8")
-    ).hexdigest()
-    cache_file = CACHE_DIR / f"embeddings_{fingerprint}.npy"
-    product_embeddings = None
-    if cache_file.exists():
-        try:
-            cached = np.load(cache_file, allow_pickle=False)
-            if (cached.shape == (len(products), 1536) and np.isfinite(cached).all()
-                    and np.all(np.linalg.norm(cached, axis=1) > 0)):
-                product_embeddings = cached
-                print("Using cached product embeddings.")
-        except (ValueError, EOFError):
-            pass
-    if product_embeddings is None:
-        product_embeddings = np.asarray(create_embeddings(product_texts), dtype=np.float32)
-        np.save(cache_file, product_embeddings, allow_pickle=False)
-
-    print(f"Ready to search {len(products):,} products. Type exit to quit.")
+    print('Enter commands such as -help or -query -n_results 5 "summer hat".')
+    print('Type exit to quit.')
     while True:
         try:
-            query_text = input("\nSearch: ").strip()
+            command = input("\nsearch> ").strip()
+            if command.casefold() == "exit":
+                break
+            if not command:
+                continue
+            # Parse quoted query text without executing shell commands.
+            run_command(shlex.split(command))
+        except SystemExit:
+            # Argparse help and invalid arguments must not end the session.
+            continue
+        except (ChromaError, OpenAIError, URLError, OSError, ValueError, KeyError) as error:
+            print(f"Semantic search failed: {error}", file=sys.stderr)
         except (EOFError, KeyboardInterrupt):
-            print("\nGoodbye!")
             break
-        if query_text.casefold() == "exit":
-            print("Goodbye!")
-            break
-        if not query_text:
-            continue
-        try:
-            query_vector = create_embeddings(query_text)[0]
-            hits = find_n_closest(query_vector, product_embeddings, 5)
-        except (OpenAIError, ValueError) as error:
-            print(f"Search failed: {error}", file=sys.stderr)
-            continue
-        print(f'\nSearch results for "{query_text}"')
-        for rank, hit in enumerate(hits, start=1):
-            product = products[hit["index"]]
-            print(f"\n{rank}. {product['title']} (cosine distance: {hit['distance']:.4f})")
-            print(f"   Category: {product['category']}")
-            print(f"   {' '.join(product['short_description'].split())}")
-            if product["features"]:
-                print(f"   {'; '.join(product['features'])}")
+    print("\nGoodbye!")
 
 
 if __name__ == "__main__":
@@ -212,6 +190,6 @@ if __name__ == "__main__":
         main()
     except KeyboardInterrupt:
         print("\nGoodbye!")
-    except (OpenAIError, URLError, OSError, ValueError, KeyError) as error:
-        print(f"Unable to run semantic search: {error}", file=sys.stderr)
+    except (ChromaError, OpenAIError, URLError, OSError, ValueError, KeyError) as error:
+        print(f"Semantic search failed: {error}", file=sys.stderr)
         sys.exit(1)

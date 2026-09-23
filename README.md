@@ -48,8 +48,7 @@ Associate_AI_Engineer_Career_Track/
 ├── 3_OpenAI_Responses_API/
 │   └── agentic_chatbot_terminal.py
 ├── 4_Embedding/
-│   ├── Semantic_Search_Engine.py
-│   └── .gitignore
+│   └── Semantic_Search_Engine.py
 ├── README.md
 └── LICENSE
 ```
@@ -396,44 +395,66 @@ Assistant: Here are several current options for Toronto this weekend...
 
 ## Module 4: Embeddings and Semantic Search
 
-[`4_Embedding/Semantic_Search_Engine.py`](4_Embedding/Semantic_Search_Engine.py) implements an interactive product search engine using embeddings and cosine distance. It retrieves products without RAG or generated answers.
+[`4_Embedding/Semantic_Search_Engine.py`](4_Embedding/Semantic_Search_Engine.py) stores Shopify products, combined product texts, and embeddings in a persistent local ChromaDB collection named `shopify_products`. It retrieves similar products without RAG or generated answers.
 
-### Data and workflow
+### Setup
 
-1. `load_products` downloads the first 1,000 usable products by default from the training split of the [Shopify product catalogue](https://huggingface.co/datasets/Shopify/product-catalogue). It maps titles, descriptions, categories, and brands into `products` dictionaries. Descriptions are capped at 2,000 characters; brands are stored in `features`.
-2. `create_product_text` combines those fields into `product_texts`.
-3. `create_embeddings` creates `product_embeddings` with `text-embedding-3-small`. Requests are limited to 64 inputs and 24,000 tokens; individual inputs over 8,191 tokens are rejected.
-4. Each user-entered `query_text` is embedded into `query_vector`.
-5. `find_n_closest` returns the five nearest products as `hits`, preserving their `index` and cosine `distance`. Results display titles, categories, descriptions, brands, and distances.
-6. The loop accepts another query until `exit` is entered, ignoring case and surrounding whitespace. Blank queries are skipped; Ctrl+C and EOF also exit.
-
-### Setup and run on Windows
-
-Run these commands from the **repository root** using a standard Windows Python installation with `venv` support:
+From the repository root, create the virtual environment if needed and install dependencies:
 
 ```powershell
 python -m venv .\4_Embedding\.venv
-.\4_Embedding\.venv\Scripts\python.exe -m pip install numpy openai tiktoken
+.\4_Embedding\.venv\Scripts\python.exe -m pip install chromadb openai
 $env:OPENAI_API_KEY = "your-api-key"
-.\4_Embedding\.venv\Scripts\python.exe .\4_Embedding\Semantic_Search_Engine.py
+cd .\4_Embedding
 ```
 
-If the virtual environment already exists, skip its creation. No `requirements.txt` is needed. Use the same virtual-environment interpreter for installation and execution: plain `python` or `python3` may resolve to another installation and cause `ModuleNotFoundError` for `numpy` or `tiktoken`.
+Use the same interpreter for installation and execution. No `requirements.txt` is needed. If your active Python environment already has the dependencies, you can replace `.\.venv\Scripts\python.exe` below with `python`.
 
-From **inside `4_Embedding`**, run:
+### Interactive session (from `4_Embedding`)
+
+Start the program once:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install numpy openai tiktoken
 .\.venv\Scripts\python.exe .\Semantic_Search_Engine.py
 ```
 
-To index more products, add `--limit 5000` (minimum: 5). Example queries include `a gift for someone who enjoys gardening` and `a lightweight summer hat`.
+At the `search>` prompt, enter arguments directly, one command at a time:
 
-### Caching and limitations
+```text
+-init -limit 4096
+-list
+-count shopify_products
+-peek shopify_products
+-query -n_results 5 "summer hat"
+-query -n_results 3 "gardening gift"
+-help
+exit
+```
 
-Product metadata and embeddings are saved in `4_Embedding/.semantic_search_cache/`, which is excluded from Git along with `.venv/` and `__pycache__/`. Embedding cache keys include the model and ordered product texts. Cached vectors are reused on later runs; each nonempty search still calls the OpenAI embeddings API. Initial indexing and query embedding incur API charges.
+Each result returns to the prompt. Help, invalid arguments, and failed commands also return to the prompt. Blank input is ignored; `exit`, Ctrl+C, or EOF ends the session. Quote multiword queries. These are application commands, not shell commands.
 
-Search covers only the loaded catalogue sample, which is multilingual and is not live inventory. Lower cosine distance indicates greater similarity, not a confidence probability. The engine returns five results even when all matches are weak. To refresh downloaded metadata, remove the relevant `shopify_train_<limit>_v1.json` cache file; embeddings are rebuilt if the resulting texts change.
+### Single-command mode (from `4_Embedding`)
+
+```powershell
+.\.venv\Scripts\python.exe .\Semantic_Search_Engine.py -help
+.\.venv\Scripts\python.exe .\Semantic_Search_Engine.py -init -limit 4096
+.\.venv\Scripts\python.exe .\Semantic_Search_Engine.py -list
+.\.venv\Scripts\python.exe .\Semantic_Search_Engine.py -count shopify_products
+.\.venv\Scripts\python.exe .\Semantic_Search_Engine.py -peek shopify_products
+.\.venv\Scripts\python.exe .\Semantic_Search_Engine.py -query -n_results 5 "a lightweight summer hat"
+```
+
+Choose one action per command. `-limit` applies only to `-init` and defaults to **2048** source rows. `-n_results` applies only to `-query` and defaults to **5**; both must be positive. Double-hyphen aliases are also supported. Passing arguments when launching the script runs one command and exits; launching without arguments starts the interactive session.
+
+### Data and search
+
+- `load_products` downloads rows from the [Shopify product catalogue](https://huggingface.co/datasets/Shopify/product-catalogue) training split. Rows without titles are skipped, so the stored count may be below the requested source-row limit. Descriptions are capped at 2,000 characters and brands become `features`.
+- `create_product_text` combines title, description, category, and features. Chroma's `OpenAIEmbeddingFunction` embeds these documents using **`text-embedding-3-small`** (the API model name uses hyphens).
+- Initialization upserts batches of 32 products with stable source-row IDs. Running it again updates the selected rows without duplicate IDs and incurs embedding charges again. A smaller limit does not remove previously stored rows. An interrupted run may leave completed batches stored; rerun `-init` to finish.
+- `find_n_closest` calls Chroma's vector query using cosine distance. It returns up to the requested number of results, capped at the collection count. Lower distances indicate greater similarity, not confidence probabilities.
+- `-list`, `-count`, and `-peek` inspect local data without downloading products or calling OpenAI. Peek displays up to ten stored IDs, documents, and metadata records; it is not a similarity ranking.
+
+The database lives in `4_Embedding/chroma_db/`, resolved relative to the script regardless of your working directory. Local rules in `.git/info/exclude` keep the database, `.gitignore`, virtual environment, and old caches out of Git in this checkout. These rules are local and must be configured again in a fresh clone. The previous JSON/NumPy caches are no longer used. `-init` and `-query` require `OPENAI_API_KEY` and internet access for paid embeddings; storage and similarity search are local. Search covers only stored products, and the dataset is not live inventory.
 
 ---
 
@@ -448,8 +469,7 @@ Search covers only the loaded catalogue sample, which is multilingual and is not
 | `transformers` | Latest | HuggingFace transformer models |
 | `torch` | Latest | Deep learning framework |
 | `pypdf` | Latest | PDF processing |
-| `numpy` | Latest | Embedding arrays and cosine-distance ranking |
-| `tiktoken` | Latest | Embedding input token counting |
+| `chromadb` | Latest | Persistent product storage and vector similarity search |
 
 ### Optional Dependencies
 
@@ -483,7 +503,7 @@ source venv/bin/activate
 
 ```bash
 # Install all requirements
-python -m pip install openai flask transformers torch pypdf numpy tiktoken
+python -m pip install openai flask transformers torch pypdf chromadb
 
 # Or install individual modules as needed
 # For OpenAI module
