@@ -1,6 +1,6 @@
 # Associate AI Engineer Career Track - DataCamp Projects
 
-A comprehensive collection of hands-on projects demonstrating practical applications of modern AI APIs and transformer models. This repository covers two major areas: **OpenAI API integration** and **HuggingFace Transformers**, providing educational resources for developers learning to build production-ready AI applications.
+A collection of hands-on projects covering **OpenAI API integration**, **HuggingFace Transformers**, and **semantic product search with a local ChromaDB vector database**. The embedding module supports a persistent interactive terminal session for initializing, inspecting, and searching Shopify products.
 
 ## 📋 Table of Contents
 
@@ -29,6 +29,7 @@ This project is designed for aspiring AI Engineers participating in DataCamp's A
 - **NLP Task Diversity**: Text generation, classification, zero-shot learning, and question-answering
 - **Production Patterns**: Secure API key management, session handling, error management
 - **Modern ML Stack**: OpenAI's latest models and HuggingFace's pre-trained transformers
+- **Vector Search**: Persistent ChromaDB storage, OpenAI embeddings, and repeated product searches in one terminal session
 
 ## 📁 Repository Structure
 
@@ -433,6 +434,24 @@ exit
 
 Each result returns to the prompt. Help, invalid arguments, and failed commands also return to the prompt. Blank input is ignored; `exit`, Ctrl+C, or EOF ends the session. Quote multiword queries. These are application commands, not shell commands.
 
+Initialize once before the first query. On later launches, query the existing collection directly; initialization is only needed to load or refresh products. Enter only the arguments at `search>`—do not repeat `python Semantic_Search_Engine.py` there.
+
+### Command reference
+
+| Command | Behavior |
+|---------|----------|
+| `-help` | Display available arguments and return to the interactive prompt |
+| `-init` | Download up to 2048 source rows and store usable products in `shopify_products` |
+| `-init -limit 4096` | Load up to the specified positive number of source rows |
+| `-list` | List all collections in the local database |
+| `-count COLLECTION` | Print the document count for the named collection |
+| `-peek COLLECTION` | Display up to ten stored items, including documents and metadata |
+| `-query "text"` | Retrieve up to five similar products from `shopify_products` |
+| `-query -n_results N "text"` | Retrieve up to `N` similar products; `N` must be positive |
+| `exit` | End the interactive session; surrounding whitespace and case are ignored |
+
+`-init` and `-query` require an API key. Inspection commands do not require one. Use one action per command; `-limit` is only valid with `-init`, and `-n_results` only with `-query`.
+
 ### Single-command mode (from `4_Embedding`)
 
 ```powershell
@@ -455,6 +474,25 @@ Choose one action per command. `-limit` applies only to `-init` and defaults to 
 - `-list`, `-count`, and `-peek` inspect local data without downloading products or calling OpenAI. Peek displays up to ten stored IDs, documents, and metadata records; it is not a similarity ranking.
 
 The database lives in `4_Embedding/chroma_db/`, resolved relative to the script regardless of your working directory. Local rules in `.git/info/exclude` keep the database, `.gitignore`, virtual environment, and old caches out of Git in this checkout. These rules are local and must be configured again in a fresh clone. The previous JSON/NumPy caches are no longer used. `-init` and `-query` require `OPENAI_API_KEY` and internet access for paid embeddings; storage and similarity search are local. Search covers only stored products, and the dataset is not live inventory.
+
+### Local files and troubleshooting
+
+For a fresh clone, add these patterns to the repository's `.git/info/exclude` before staging generated files. This exclusion file stays local and is not pushed:
+
+```gitignore
+.gitignore
+/4_Embedding/[Cc]hroma_[Dd][Bb]/
+/4_Embedding/.semantic_search_cache/
+/4_Embedding/.venv/
+/4_Embedding/__pycache__/
+```
+
+The current remote tree contains neither `.gitignore` nor the local database. Previously committed `.gitignore` versions remain in Git history. Ignore rules only exclude untracked files.
+
+- **Missing `chromadb` or `openai`:** From `4_Embedding`, run `.\.venv\Scripts\python.exe -m pip install chromadb openai`, then launch with that same interpreter.
+- **Missing API key:** Set `$env:OPENAI_API_KEY = "your-api-key"` in PowerShell before starting the program.
+- **Missing or empty collection:** Enter `-init` before querying. Use `-list` to check collection names.
+- **Invalid arguments or unmatched quotes:** Correct the command at the next prompt; the session remains open.
 
 ---
 
@@ -830,6 +868,6 @@ For questions, issues, or feedback:
 
 ---
 
-**Last Updated**: September 2026
+**Last Updated**: September 23, 2026
 **Python Version**: 3.8+  
 **Status**: Active Development
